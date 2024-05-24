@@ -1,6 +1,12 @@
 import tkinter as tk
+
+import PIL.Image
 import cv2
+import numpy as np
 import utils
+
+from PIL import Image, ImageTk
+from gabriels_openCvPyLib import openCvLib
 
 
 class App:
@@ -22,14 +28,29 @@ class App:
 
     def addWebcan(self, label: tk.Label) -> None:
         if 'cap' not in self.__dict__: #test if the variable is already created
-            self.cap:cv2.VideoCapture = cv2.VideoCapture(0)
+            self.cap: cv2.VideoCapture = cv2.VideoCapture(0)
 
         self._label: tk.label = label
         self.processWebcan()
 
     def processWebcan(self) -> None:
-        ret, cap = self.cap.read()
+        ret: bool
+        frame: np.uint8
+        ret, frame = self.cap.read()
 
+        self.most_recent_cap: np.uint8 = frame
+
+        # img_ = cv2.cvtColor(self.most_recent_capture, cv2.COLOR_BGR2RGB)
+        img_: np.uint8 = openCvLib.bgr2rgb(self.most_recent_cap)
+
+        self.most_recent_cap_pil: PIL.Image.Image = Image.fromarray(img_)
+
+        img_tk: PIL.ImageTk = ImageTk.PhotoImage(image=self.most_recent_cap_pil)
+
+        self._label.imgtk = img_tk
+        self._label.configure(image=img_tk)
+
+        self._label.after(20, self.processWebcan())
 
 
     def login(self) -> None:
