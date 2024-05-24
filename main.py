@@ -20,7 +20,7 @@ class App:
         self.register_new_usr_button_main_window = utils.getButton(self.main_window, 'Register', 'gray', self.registerNewUsr, fg='black')
         self.register_new_usr_button_main_window.place(x=750, y=400)
 
-        self.webcan_label = utils.getImgLabel(self.main_window)
+        self.webcan_label: tk.Label = utils.getImgLabel(self.main_window)
         self.webcan_label.place(x=10, y=0, width=700, height=500)
 
         self.addWebcan(self.webcan_label)
@@ -30,7 +30,7 @@ class App:
         if 'cap' not in self.__dict__: #test if the variable is already created
             self.cap: cv2.VideoCapture = cv2.VideoCapture(0)
 
-        self._label: tk.label = label
+        self._label: tk.Label = label
         self.processWebcan()
 
     def processWebcan(self) -> None:
@@ -45,12 +45,12 @@ class App:
 
         self.most_recent_cap_pil: PIL.Image.Image = Image.fromarray(img_)
 
-        img_tk: PIL.ImageTk = ImageTk.PhotoImage(image=self.most_recent_cap_pil)
+        img_tk: ImageTk.PhotoImage = ImageTk.PhotoImage(image=self.most_recent_cap_pil)
 
-        self._label.imgtk = img_tk
+        self._label.imgtk: ImageTk.PhotoImage = img_tk
         self._label.configure(image=img_tk)
 
-        self._label.after(20, self.processWebcan())
+        self._label.after(20, self.processWebcan)
 
 
     def login(self) -> None:
