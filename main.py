@@ -1,67 +1,139 @@
+import subprocess
 import tkinter as tk
-
-import PIL.Image
 import cv2
 import numpy as np
 import utils
+import os
+import datetime
 
 from PIL import Image, ImageTk
 from gabriels_openCvPyLib import openCvLib
 
+'''
+later verify page: https://stackoverflow.com/questions/9131992/how-can-i-catch-corrupt-jpegs-when-loading-an-image-with-imread-in-opencv
+to handdle 'Corrupt JPEG data: 22 extraneous bytes before marker 0xd9' error
+'''
 
 class App:
     def __init__(self):
         self.main_window = tk.Tk()
         self.main_window.geometry("1200x520+350+100")
 
-        self.login_button_main_window = utils.getButton(self.main_window, 'login', 'red', self.login)
-        self.login_button_main_window.place(x=750, y=300)
+        self.btn_login_main_win = utils.getButton(self.main_window, 'login', 'red', self.login)
+        self.btn_login_main_win.place(x=750, y=300)
 
-        self.register_new_usr_button_main_window = utils.getButton(self.main_window, 'Register', 'gray', self.registerNewUsr, fg='black')
-        self.register_new_usr_button_main_window.place(x=750, y=400)
+        self.btn_register_new_usr_main_win: tk.Button = utils.getButton(self.main_window, 'Register',
+                                                                     'gray', self.registerNewUsr, fg='black')
+        self.btn_register_new_usr_main_win.place(x=750, y=400)
 
         self.webcan_label: tk.Label = utils.getImgLabel(self.main_window)
         self.webcan_label.place(x=10, y=0, width=700, height=500)
 
+        # make test for webcan identified
         self.addWebcan(self.webcan_label)
+
+        #self.prjt_root_dir: str = os.getcwd()
+        self.imgs_db_dir: str = './imgs_db'
+        if not os.path.exists(self.imgs_db_dir):
+            os.mkdir(self.imgs_db_dir)
+
+        self.log_path = './scan_log.txt'
+
 
 
     def addWebcan(self, label: tk.Label) -> None:
         if 'cap' not in self.__dict__: #test if the variable is already created
             self.cap: cv2.VideoCapture = cv2.VideoCapture(0)
+            self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('J', 'P', 'E', 'G'))
 
         self._label: tk.Label = label
         self.processWebcan()
 
     def processWebcan(self) -> None:
         ret: bool
-        frame: np.uint8
-        ret, frame = self.cap.read()
+        self.most_recent_cap: np.uint8
+        ret, self.most_recent_cap = self.cap.read()
 
-        self.most_recent_cap: np.uint8 = frame
-
-        # img_ = cv2.cvtColor(self.most_recent_capture, cv2.COLOR_BGR2RGB)
+        # process the image from open-cv tpo PIL format
         img_: np.uint8 = openCvLib.bgr2rgb(self.most_recent_cap)
+        self.most_recent_cap_pil: Image.Image = Image.fromarray(img_)
 
-        self.most_recent_cap_pil: PIL.Image.Image = Image.fromarray(img_)
-
+        # config the PIL image in the tk.labels obj
         img_tk: ImageTk.PhotoImage = ImageTk.PhotoImage(image=self.most_recent_cap_pil)
-
         self._label.imgtk: ImageTk.PhotoImage = img_tk
         self._label.configure(image=img_tk)
 
+        # Update the image to appear like a video
         self._label.after(20, self.processWebcan)
 
 
     def login(self) -> None:
-        pass
+        usr_name: str = utils.recognize(self.most_recent_cap, self.imgs_db_dir)
+
+        if usr_name in ['person_not_registered', 'no_person_found']:
+            utils.msgBox("Blocked", "Unknow user. Register or try again.")
+        else:
+            utils.msgBox("Passed", "User {} identified.".format(usr_name))
+
+            # create module for log functions
+            with open(self.log_path, 'a') as log_file:
+                log_file.write(f'[match] user \'{usr_name}\' - {datetime.datetime.now()}\n')
+                log_file.close()
 
 
     def registerNewUsr(self) -> None:
-        pass
+        # create function to test if user already exist
+        self.window_register_new_usr = tk.Toplevel(self.main_window)
+        self.window_register_new_usr.geometry("1200x520+370+120")
+
+        self.btn_accept_new_usr_win: tk.Button = utils.getButton(self.window_register_new_usr,'Accept',
+                                                                'green', self.acceptRegisterNewUsr, fg='black')
+        self.btn_accept_new_usr_win.place(x=750, y=300)
+
+        self.btn_try_again_new_usr_win: tk.Button = utils.getButton(self.window_register_new_usr, 'Try Again',
+                                                                'red', self.tryAgainRegisterNewUsr, fg='black')
+        self.btn_try_again_new_usr_win.place(x=750, y=400)
+
+        self.capture_label: tk.Label = utils.getImgLabel(self.window_register_new_usr)
+        self.capture_label.place(x=10, y=0, width=700, height=500)
+
+        self.addImg2Label(self.capture_label)
+
+        self.entry_text_register_new_usr: tk.Text = utils.getEntryText(self.window_register_new_usr)
+        self.entry_text_register_new_usr.place(x=750, y=150)
+
+        self.label_text_register_new_usr: tk.Label = utils.getTxtLabel(self.window_register_new_usr,
+                                                                    'Plase, input username: ')
+        self.label_text_register_new_usr.place(x=750, y=70)
+
+    def tryAgainRegisterNewUsr(self) -> None:
+        self.window_register_new_usr.destroy()
+
+    def addImg2Label(self, label: tk.Label) -> None:
+        img_tk = ImageTk.PhotoImage(image=self.most_recent_cap_pil)
+        label.imgtk = img_tk
+        label.configure(image=img_tk)
+
+        self.register_new_user_capture: np.uint8 = self.most_recent_cap.copy()
+
+
+    def acceptRegisterNewUsr(self) -> None:
+        name: str = self.entry_text_register_new_usr.get(1.0, "end-1c")
+
+        cv2.imwrite(os.path.join(self.imgs_db_dir, '{}.jpg'.format(name.upper())), self.register_new_user_capture)
+
+        self.window_register_new_usr.destroy()
+        utils.msgBox('Success.', 'User was registered successfully.')
+
+
 
     def start(self) -> None:
         self.main_window.mainloop()
+
+        #treat empty name input
+
+
+
 
 def main() -> None:
     app: App = App()
