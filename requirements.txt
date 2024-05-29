@@ -16,3 +16,9 @@ python-dateutil==2.9.0.post0
 scipy==1.13.1
 six==1.16.0
 tk==0.1.0
+cmake==3.17.2
+easydict==1.10
+tqdm==4.64.1
+torchvision==0.14.1
+torch==1.13.1
+tensorboardX==2.5.1

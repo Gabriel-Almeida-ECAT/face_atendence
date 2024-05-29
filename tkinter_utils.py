@@ -1,7 +1,3 @@
-import pickle
-import PIL
-import os
-import face_recognition
 import tkinter as tk
 
 from tkinter import messagebox
@@ -41,32 +37,6 @@ def getEntryText(window) -> tk.Text:
 
 def msgBox(title, description) -> None:
     messagebox.showinfo(title, description)
-
-
-def recognize(img: PIL.Image, db_path: str) -> str:
-    face_scan_result: list[bytes] = face_recognition.face_encodings(img)
-    if len(face_scan_result) == 0:
-        return 'no_person_found'
-    else:
-        face_scan_result = face_scan_result[0]
-
-    db_imgs_list: list[str] = sorted(os.listdir(db_path))
-
-    match: bool = False
-    ind: int = 0
-    while (not match) and (ind < len(db_imgs_list)):
-        img_path: str = os.path.join(db_path, db_imgs_list[ind])
-
-        file: file = open(img_path, 'rb')
-        test_img: bytes = pickle.load(file)
-
-        match: bool = face_recognition.compare_faces([test_img], face_scan_result)[0]
-        ind += 1
-
-    if match:
-        return db_imgs_list[ind]
-    else:
-        return 'person_not_registered'
 
 
 def main() -> None:
