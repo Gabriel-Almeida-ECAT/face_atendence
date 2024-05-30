@@ -3,31 +3,39 @@ import datetime
 import cv2
 import numpy as np
 import tkinter as tk
-import tkinter_utils as tk_utils
+import ui_utils
 import image_utils as img_utils
 
+from ui_utils import grid_ui
 from PIL import Image, ImageTk
 from gabriels_openCvPyLib import openCvLib
 from anti_spoofing.test import test as test_spoofing
 
-# adjust image window to camera resolution
+
+main_win_width: int = 480
+main_win_height: int = 720
+
+grid_calc: grid_ui = grid_ui(grid_rows=24, grid_cols=20, win_width=main_win_width, win_height=main_win_height)
+
 
 class App:
     def __init__(self):
         self.main_window = tk.Tk()
-        main_win_width = 1240
-        win_height = 768
-        self.main_window.geometry(f"{main_win_width}x{win_height}")
+        self.main_window.geometry(f"{main_win_width}x{main_win_height}")
 
-        self.btn_login_main_win = tk_utils.getButton(self.main_window, 'login', 'red', self.login)
-        self.btn_login_main_win.place(x=750, y=300)
+        '''self.btn_login_main_win = ui_utils.getButton(self.main_window, 'login', 'red', self.login)
+        self.btn_login_main_win.place(x=500, y=500, width=100, height=100)'''
 
-        self.btn_register_new_usr_main_win: tk.Button = tk_utils.getButton(self.main_window, 'Register',
+        self.btn_register_new_usr_main_win: tk.Button = ui_utils.getButton(self.main_window, 'Register',
                                                                      'gray', self.registerNewUsr, fg='black')
-        self.btn_register_new_usr_main_win.place(x=750, y=400)
+        #self.btn_register_new_usr_main_win.place(x=750, y=400)
+        self.btn_register_new_usr_main_win.place(x=grid_calc.getXpixelOfCel(12), y=grid_calc.getYpixelOfCel(21), \
+                                            width=grid_calc.getSizeHoriCel(7), height=grid_calc.getSizeVertiCel(2))
 
-        self.webcan_label: tk.Label = tk_utils.getImgLabel(self.main_window)
-        self.webcan_label.place(x=10, y=10, width=640, height=450)
+
+        self.webcan_label: tk.Label = ui_utils.getImgLabel(self.main_window)
+        self.webcan_label.place(x=grid_calc.getXpixelOfCel(1), y=grid_calc.getYpixelOfCel(1), \
+                                            width=grid_calc.getSizeHoriCel(18), height=grid_calc.getSizeVertiCel(18))
 
         # make test for webcan identified
         self.addWebcan(self.webcan_label)
@@ -78,9 +86,9 @@ class App:
             usr_name: str = img_utils.recognize(self.most_recent_cap, self.imgs_db_dir)
 
             if usr_name in ['person_not_registered', 'no_person_found']:
-                tk_utils.msgBox("Blocked", "Unknow user. Register or try again.")
+                ui_utils.msgBox("Blocked", "Unknow user. Register or try again.")
             else:
-                tk_utils.msgBox("Passed", "User {} identified.".format(usr_name))
+                ui_utils.msgBox("Passed", "User {} identified.".format(usr_name))
 
                 # create module for log functions
                 with open(self.log_path, 'a') as log_file:
@@ -89,7 +97,7 @@ class App:
                     log_file.close()
 
         elif result_spoofing_test['label'] != 1:
-            tk_utils.msgBox("Blocked", "Spoof atempt detected")
+            ui_utils.msgBox("Blocked", "Spoof atempt detected")
             print('spoof result: ', result_spoofing_test['label'])
             with open(self.log_path, 'a') as log_file:
                 log_file.write(f'[spoof_atempt_detected] - {datetime.datetime.now()}\n')
@@ -101,23 +109,23 @@ class App:
         self.window_register_new_usr = tk.Toplevel(self.main_window)
         self.window_register_new_usr.geometry("1200x520+370+120")
 
-        self.btn_accept_new_usr_win: tk.Button = tk_utils.getButton(self.window_register_new_usr,'Accept',
+        self.btn_accept_new_usr_win: tk.Button = ui_utils.getButton(self.window_register_new_usr,'Accept',
                                                                 'green', self.acceptRegisterNewUsr, fg='black')
         self.btn_accept_new_usr_win.place(x=750, y=300)
 
-        self.btn_try_again_new_usr_win: tk.Button = tk_utils.getButton(self.window_register_new_usr, 'Try Again',
+        self.btn_try_again_new_usr_win: tk.Button = ui_utils.getButton(self.window_register_new_usr, 'Try Again',
                                                                 'red', self.tryAgainRegisterNewUsr, fg='black')
         self.btn_try_again_new_usr_win.place(x=750, y=400)
 
-        self.capture_label: tk.Label = tk_utils.getImgLabel(self.window_register_new_usr)
+        self.capture_label: tk.Label = ui_utils.getImgLabel(self.window_register_new_usr)
         self.capture_label.place(x=10, y=0, width=700, height=500)
 
         self.addImg2Label(self.capture_label)
 
-        self.entry_text_register_new_usr: tk.Text = tk_utils.getEntryText(self.window_register_new_usr)
+        self.entry_text_register_new_usr: tk.Text = ui_utils.getEntryText(self.window_register_new_usr)
         self.entry_text_register_new_usr.place(x=750, y=150)
 
-        self.label_text_register_new_usr: tk.Label = tk_utils.getTxtLabel(self.window_register_new_usr,
+        self.label_text_register_new_usr: tk.Label = ui_utils.getTxtLabel(self.window_register_new_usr,
                                                                     'Plase, input username: ')
         self.label_text_register_new_usr.place(x=750, y=70)
 
@@ -140,7 +148,7 @@ class App:
         img_utils.fixCorruptJpeg(input_path=img_path, output_path=img_path)
 
         self.window_register_new_usr.destroy()
-        tk_utils.msgBox('Success.', 'User was registered successfully.')
+        ui_utils.msgBox('Success.', 'User was registered successfully.')
 
 
 
