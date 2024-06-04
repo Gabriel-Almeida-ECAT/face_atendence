@@ -40,9 +40,7 @@ def getButton(window: tk.Tk, text: str, color, command, fg='white') -> tk.Button
         fg=fg,
         bg=color,
         command=command,
-        height=2,
-        width=20,
-        font=('Helvetica bold', 20)
+        font=('Helvetica bold', 18)
     )
 
 

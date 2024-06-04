@@ -12,8 +12,11 @@ from gabriels_openCvPyLib import openCvLib
 from anti_spoofing.test import test as test_spoofing
 
 
-main_win_width: int = 480
-main_win_height: int = 720
+main_win_width: int = 560
+main_win_height: int = 840
+
+webcan_img_width: int = 480
+webcan_img_height: int = 720
 
 grid_calc: grid_ui = grid_ui(grid_rows=24, grid_cols=20, win_width=main_win_width, win_height=main_win_height)
 
@@ -21,21 +24,39 @@ grid_calc: grid_ui = grid_ui(grid_rows=24, grid_cols=20, win_width=main_win_widt
 class App:
     def __init__(self):
         self.main_window = tk.Tk()
+        #self.main_window.geometry(f"1200x520+350+100")
         self.main_window.geometry(f"{main_win_width}x{main_win_height}")
 
-        '''self.btn_login_main_win = ui_utils.getButton(self.main_window, 'login', 'red', self.login)
-        self.btn_login_main_win.place(x=500, y=500, width=100, height=100)'''
+        '''
+        GOAL: get rid of the login button, use a yolo model to detect the presence od a person face and use it to
+        trigger the identification.
+        OBSTACLE: Don't have GPU and can't be sure the yolo model perfomrance will be acceptable ToT
+        '''
+        self.btn_login_main_win = ui_utils.getButton(self.main_window, 'login', 'red', self.login)
+        self.btn_login_main_win.place(x=150, y=750, width=150, height=60)
+        '''self.btn_login_main_win.place(x=grid_calc.getXpixelOfCel(4), y=grid_calc.getYpixelOfCel(21),
+                                            width=grid_calc.getSizeHoriCel(7), height=grid_calc.getSizeVertiCel(2))'''
 
         self.btn_register_new_usr_main_win: tk.Button = ui_utils.getButton(self.main_window, 'Register',
                                                                      'gray', self.registerNewUsr, fg='black')
-        #self.btn_register_new_usr_main_win.place(x=750, y=400)
-        self.btn_register_new_usr_main_win.place(x=grid_calc.getXpixelOfCel(12), y=grid_calc.getYpixelOfCel(21), \
-                                            width=grid_calc.getSizeHoriCel(7), height=grid_calc.getSizeVertiCel(2))
+        self.btn_register_new_usr_main_win.place(x=350, y=750, width=150, height=60)
+        '''self.btn_register_new_usr_main_win.place(x=grid_calc.getXpixelOfCel(12), y=grid_calc.getYpixelOfCel(21),
+                                            width=grid_calc.getSizeHoriCel(7), height=grid_calc.getSizeVertiCel(2))'''
 
+        self.img_prv_rotation: int = 0
+        self.img_crt_rotation: int = 0
+        self.btn_rotate_img_clock_wise: tk.Button = ui_utils.getButton(self.main_window, '↻',
+                                                                    'gray', self.rotateImgClockWise, fg='black')
+        self.btn_rotate_img_clock_wise.place(x=40, y=750, width=50, height=60)
+        self.btn_rotate_img_anti_clock_wise: tk.Button = ui_utils.getButton(self.main_window, '↺',
+                                                                'gray', self.incrementAngleAntiClockWise, fg='black')
+        self.btn_rotate_img_anti_clock_wise.place(x=100, y=750, width=50, height=60)
 
         self.webcan_label: tk.Label = ui_utils.getImgLabel(self.main_window)
-        self.webcan_label.place(x=grid_calc.getXpixelOfCel(1), y=grid_calc.getYpixelOfCel(1), \
-                                            width=grid_calc.getSizeHoriCel(18), height=grid_calc.getSizeVertiCel(18))
+        '''self.webcan_label.place(x=grid_calc.getXpixelOfCel(1), y=grid_calc.getYpixelOfCel(1), 
+                                            width=grid_calc.getSizeHoriCel(18), height=grid_calc.getSizeVertiCel(18))'''
+        self.webcan_label.place(x=40, y=10, width=480, height=720)
+
 
         # make test for webcan identified
         self.addWebcan(self.webcan_label)
@@ -62,8 +83,11 @@ class App:
         ret: bool
         self.most_recent_cap: np.uint8
         ret, self.most_recent_cap = self.cap.read()
+        #self.most_recent_cap: np.uint8 = cv2.resize(self.most_recent_cap,(webcan_img_width, webcan_img_height))
+        #self.most_recent_cap: np.uint8 = img_utils.getCenteredAspectRatioCrop(self.most_recent_cap, 1.5)
 
         # process the image from open-cv tpo PIL format
+        self.most_recent_cap: np.uint8 = self.rotateImgAntiClockWise(self.most_recent_cap)
         img_: np.uint8 = openCvLib.bgr2rgb(self.most_recent_cap)
         self.most_recent_cap_pil: Image.Image = Image.fromarray(img_)
 
@@ -73,7 +97,51 @@ class App:
         self._label.configure(image=img_tk)
 
         # Update the image to appear like a video
-        self._label.after(20, self.processWebcan)
+        self.frame_rate = self.cap.get(cv2.CAP_PROP_FPS)
+        self._label.after(int((1/self.frame_rate)*1000), self.processWebcan)
+
+    def rotateImgClockWise(self):
+        pass
+
+
+    def incrementAngleAntiClockWise(self):
+        if self.img_crt_rotation == 0:
+            self.img_crt_rotation: int = 90
+
+        elif self.img_crt_rotation == 90:
+            self.img_crt_rotation: int = 180
+
+        elif self.img_crt_rotation == 180:
+            self.img_crt_rotation: int = 270
+
+        elif self.img_crt_rotation == 270:
+            self.img_crt_rotation: int = 0
+
+
+    def rotateImgAntiClockWise(self, img_obj: np.uint8) -> np.uint8:
+        if self.img_prv_rotation != self.img_crt_rotation and self.img_crt_rotation == 0:
+            self.img_prv_rotation: int = 90
+            return np.transpose(img_obj, (1, 0, 2))
+
+        elif self.img_prv_rotation != self.img_crt_rotation and self.img_crt_rotation == 90:
+            self.img_prv_rotation: int = 180
+            img_ob: np.uint8 = np.transpose(img_obj, (1, 0, 2))
+            return cv2.flip(img_obj, -1)
+
+        elif self.img_prv_rotation != self.img_crt_rotation and self.img_crt_rotation == 180:
+            self.img_prv_rotation: int = 270
+            img_ob: np.uint8 = cv2.flip(img_obj, -1)
+            img_ob: np.uint8 = np.transpose(img_obj, (1, 0, 2))
+            return cv2.flip(img_obj, 1)
+
+        elif self.img_prv_rotation != self.img_crt_rotation and self.img_crt_rotation == 270:
+            self.img_prv_rotation: int = 0
+            img_ob: np.uint8 = np.transpose(img_obj, (1, 0, 2))
+            img_ob: np.uint8 = cv2.flip(img_obj, -1)
+            return cv2.flip(img_obj, 1)
+
+        elif self.img_prv_rotation == self.img_crt_rotation:
+            return img_obj
 
 
     def login(self) -> None:
@@ -82,7 +150,7 @@ class App:
             image = self.most_recent_cap,
             model_dir = './anti_spoofing/resources/anti_spoof_models',
             device_id = 0)
-        if result_spoofing_test['label'] == 1:
+        if result_spoofing_test['label'] in [1, 0]:
             usr_name: str = img_utils.recognize(self.most_recent_cap, self.imgs_db_dir)
 
             if usr_name in ['person_not_registered', 'no_person_found']:
@@ -92,15 +160,16 @@ class App:
 
                 # create module for log functions
                 with open(self.log_path, 'a') as log_file:
-                    log_file.write(f'[match] user \'{usr_name}\' - {datetime.datetime.now()} - conf_spoofing: \
-                        {result_spoofing_test["conf"]}\n')
+                    log_file.write(f'[match] user \'{usr_name}\' - {datetime.datetime.now()} - real_face_score: \
+                        {result_spoofing_test["conf"]:.2f}\n')
                     log_file.close()
 
-        elif result_spoofing_test['label'] != 1:
+        elif result_spoofing_test['label'] not in [1, 0]:
             ui_utils.msgBox("Blocked", "Spoof atempt detected")
             print('spoof result: ', result_spoofing_test['label'])
             with open(self.log_path, 'a') as log_file:
-                log_file.write(f'[spoof_atempt_detected] - {datetime.datetime.now()}\n')
+                log_file.write(f'[spoof_atempt_detected] - {datetime.datetime.now()} - fake_face_score: \
+                        {result_spoofing_test["conf"]:.2f}\n')
                 log_file.close()
 
 
@@ -167,5 +236,3 @@ def main() -> None:
 
 if __name__ == '__main__':
     main()
-
-

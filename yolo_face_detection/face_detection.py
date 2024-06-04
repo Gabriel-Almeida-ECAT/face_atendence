@@ -1,13 +1,11 @@
 import cv2
-import os
-import time
 
 #from ultralytics import RTDETR
 from ultralytics import YOLO
 
 # COCO pretrained model
-#model: RTDETR = RTDETR('rtdetr-l.pt')
-model: YOLO = YOLO('yolov8l.pt')
+#model: RTDETR = RTDETR('rtdetr-l.pt') too slow on CPU
+model: YOLO = YOLO('yolov8n.pt')
 
 
 def main():
@@ -32,8 +30,8 @@ def main():
         if not has_frame:
             break
 
-        results = model(crtFrame)
-        cv2.imshow(win_name, crtFrame)
+        results = model(crtFrame, show=True)
+        #cv2.imshow(win_name, crtFrame)
 
     source.release()
     cv2.destroyWindow(win_name)

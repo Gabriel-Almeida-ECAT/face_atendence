@@ -92,6 +92,22 @@ def zoomImg(img_obj, interval_x, interval_y):
     return zoomed_img
 
 
+def getCenteredAspectRatioCrop(img_obj: np.uint8, ratio: float):
+    width, height, _ = img_obj.shape
+    if width >= height:
+        half_new_width: float = (1/2)*height*ratio
+        return img_obj[int((width/2) - half_new_width):int((width/2) + half_new_width), :]
+    elif width < height:
+        half_new_height: float = 2*width*ratio
+        return img_obj[:, int((height/2) - half_new_height):int((height/2) + half_new_height)]
+
+
+def rotateImgAroundPoint(img_obj, deg_angle: float, point: tuple[int]):
+    #img_shape: tuple[int] = (img_obj.shape[0], img_obj.shape[1])
+    rot_mat: cv2.typing.MatLike = cv2.getRotationMatrix2D(point, deg_angle, 1.0)
+    return cv2.warpAffine(img_obj, rot_mat, img_obj.shape[1::-1], flags=cv2.INTER_LINEAR)
+
+
 def rgb2yiq(rgb):
     y = rgb @ np.array([[0.30], [0.59], [0.11]])
 
