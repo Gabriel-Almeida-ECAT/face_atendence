@@ -542,7 +542,7 @@ def rotate(img, angle, resample=False, expand=False, center=None):
 
     Args:
         img (PIL Image): PIL Image to be rotated.
-        angle ({float, int}): In degrees degrees counter clockwise order.
+        angle ({float, int}): In degrees degrees cnt clockwise order.
         resample ({PIL.Image.NEAREST, PIL.Image.BILINEAR, PIL.Image.BICUBIC}, optional):
             An optional resampling filter.
             See http://pillow.readthedocs.io/en/3.4.x/handbook/concepts.html#filters

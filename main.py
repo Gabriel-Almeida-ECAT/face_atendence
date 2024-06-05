@@ -5,6 +5,7 @@ import numpy as np
 import tkinter as tk
 import ui_utils
 import image_utils as img_utils
+import log_utils
 
 from ui_utils import grid_ui
 from PIL import Image, ImageTk
@@ -33,20 +34,19 @@ class App:
         OBSTACLE: Don't have GPU and can't be sure the yolo model perfomrance will be acceptable ToT
         '''
         self.btn_login_main_win = ui_utils.getButton(self.main_window, 'login', 'red', self.login)
-        self.btn_login_main_win.place(x=150, y=750, width=150, height=60)
+        self.btn_login_main_win.place(x=160, y=750, width=170, height=60)
         '''self.btn_login_main_win.place(x=grid_calc.getXpixelOfCel(4), y=grid_calc.getYpixelOfCel(21),
                                             width=grid_calc.getSizeHoriCel(7), height=grid_calc.getSizeVertiCel(2))'''
 
         self.btn_register_new_usr_main_win: tk.Button = ui_utils.getButton(self.main_window, 'Register',
                                                                      'gray', self.registerNewUsr, fg='black')
-        self.btn_register_new_usr_main_win.place(x=350, y=750, width=150, height=60)
+        self.btn_register_new_usr_main_win.place(x=340, y=750, width=170, height=60)
         '''self.btn_register_new_usr_main_win.place(x=grid_calc.getXpixelOfCel(12), y=grid_calc.getYpixelOfCel(21),
                                             width=grid_calc.getSizeHoriCel(7), height=grid_calc.getSizeVertiCel(2))'''
 
-        self.img_prv_rotation: int = 0
-        self.img_crt_rotation: int = 0
+        self.img_intended_rotation: int = 0
         self.btn_rotate_img_clock_wise: tk.Button = ui_utils.getButton(self.main_window, '↻',
-                                                                    'gray', self.rotateImgClockWise, fg='black')
+                                                                    'gray', self.incrementAngleClockWise, fg='black')
         self.btn_rotate_img_clock_wise.place(x=40, y=750, width=50, height=60)
         self.btn_rotate_img_anti_clock_wise: tk.Button = ui_utils.getButton(self.main_window, '↺',
                                                                 'gray', self.incrementAngleAntiClockWise, fg='black')
@@ -62,11 +62,11 @@ class App:
         self.addWebcan(self.webcan_label)
 
         #self.prjt_root_dir: str = os.getcwd()
-        self.imgs_db_dir: str = './imgs_db'
-        if not os.path.exists(self.imgs_db_dir):
-            os.mkdir(self.imgs_db_dir)
+        self.imgs_db_dir: str = r'./imgs_db'
+        os.makedirs(self.imgs_db_dir, exist_ok=True)
 
-        self.log_path = './scan_log.txt'
+        os.makedirs(r'./logs/', exist_ok=True)
+        self.scan_log_path = './logs/scan_log.txt'
 
 
 
@@ -83,11 +83,9 @@ class App:
         ret: bool
         self.most_recent_cap: np.uint8
         ret, self.most_recent_cap = self.cap.read()
-        #self.most_recent_cap: np.uint8 = cv2.resize(self.most_recent_cap,(webcan_img_width, webcan_img_height))
-        #self.most_recent_cap: np.uint8 = img_utils.getCenteredAspectRatioCrop(self.most_recent_cap, 1.5)
 
         # process the image from open-cv tpo PIL format
-        self.most_recent_cap: np.uint8 = self.rotateImgAntiClockWise(self.most_recent_cap)
+        self.most_recent_cap: np.uint8 = self.rotateImg(self.most_recent_cap)
         img_: np.uint8 = openCvLib.bgr2rgb(self.most_recent_cap)
         self.most_recent_cap_pil: Image.Image = Image.fromarray(img_)
 
@@ -104,44 +102,32 @@ class App:
         pass
 
 
+    def incrementAngleClockWise(self):
+        self.img_intended_rotation = self.img_intended_rotation - 90 \
+            if self.img_intended_rotation != 0 \
+            else 270
+
+
     def incrementAngleAntiClockWise(self):
-        if self.img_crt_rotation == 0:
-            self.img_crt_rotation: int = 90
-
-        elif self.img_crt_rotation == 90:
-            self.img_crt_rotation: int = 180
-
-        elif self.img_crt_rotation == 180:
-            self.img_crt_rotation: int = 270
-
-        elif self.img_crt_rotation == 270:
-            self.img_crt_rotation: int = 0
+        self.img_intended_rotation = self.img_intended_rotation + 90 \
+            if self.img_intended_rotation != 270 \
+            else 0
 
 
-    def rotateImgAntiClockWise(self, img_obj: np.uint8) -> np.uint8:
-        if self.img_prv_rotation != self.img_crt_rotation and self.img_crt_rotation == 0:
-            self.img_prv_rotation: int = 90
+    def rotateImg(self, img_obj: np.uint8) -> np.uint8:
+        if self.img_intended_rotation == 90:
             return np.transpose(img_obj, (1, 0, 2))
 
-        elif self.img_prv_rotation != self.img_crt_rotation and self.img_crt_rotation == 90:
-            self.img_prv_rotation: int = 180
-            img_ob: np.uint8 = np.transpose(img_obj, (1, 0, 2))
+        elif self.img_intended_rotation == 180:
             return cv2.flip(img_obj, -1)
 
-        elif self.img_prv_rotation != self.img_crt_rotation and self.img_crt_rotation == 180:
-            self.img_prv_rotation: int = 270
-            img_ob: np.uint8 = cv2.flip(img_obj, -1)
-            img_ob: np.uint8 = np.transpose(img_obj, (1, 0, 2))
-            return cv2.flip(img_obj, 1)
+        elif self.img_intended_rotation == 270:
+            img_obj: np.uint8 = cv2.flip(img_obj, -1)
+            return np.transpose(img_obj, (1, 0, 2))
 
-        elif self.img_prv_rotation != self.img_crt_rotation and self.img_crt_rotation == 270:
-            self.img_prv_rotation: int = 0
-            img_ob: np.uint8 = np.transpose(img_obj, (1, 0, 2))
-            img_ob: np.uint8 = cv2.flip(img_obj, -1)
-            return cv2.flip(img_obj, 1)
-
-        elif self.img_prv_rotation == self.img_crt_rotation:
+        elif self.img_intended_rotation == 0:
             return img_obj
+
 
 
     def login(self) -> None:
@@ -155,22 +141,24 @@ class App:
 
             if usr_name in ['person_not_registered', 'no_person_found']:
                 ui_utils.msgBox("Blocked", "Unknow user. Register or try again.")
+                unkown_msg: str = f'[unkown] unknown person atempt - {datetime.datetime.now()} - real_face_score: \
+                                        {result_spoofing_test["conf"]:.2f}\n'
+                log_utils.scan_log(self.scan_log_path, unkown_msg)
+
             else:
                 ui_utils.msgBox("Passed", "User {} identified.".format(usr_name))
 
-                # create module for log functions
-                with open(self.log_path, 'a') as log_file:
-                    log_file.write(f'[match] user \'{usr_name}\' - {datetime.datetime.now()} - real_face_score: \
-                        {result_spoofing_test["conf"]:.2f}\n')
-                    log_file.close()
+                match_msg: str = f'[match] user \'{usr_name}\' - {datetime.datetime.now()} - real_face_score: \
+                        {result_spoofing_test["conf"]:.2f}\n'
+                log_utils.scan_log(self.scan_log_path, match_msg)
 
         elif result_spoofing_test['label'] not in [1, 0]:
             ui_utils.msgBox("Blocked", "Spoof atempt detected")
             print('spoof result: ', result_spoofing_test['label'])
-            with open(self.log_path, 'a') as log_file:
-                log_file.write(f'[spoof_atempt_detected] - {datetime.datetime.now()} - fake_face_score: \
-                        {result_spoofing_test["conf"]:.2f}\n')
-                log_file.close()
+
+            spoof_msg: str = f'[spoof_atempt_detected] - {datetime.datetime.now()} - fake_face_score: \
+                        {result_spoofing_test["conf"]:.2f}\n'
+            log_utils.scan_log(self.scan_log_path, spoof_msg)
 
 
     def registerNewUsr(self) -> None:
