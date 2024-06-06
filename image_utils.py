@@ -41,16 +41,11 @@ def fixCorruptJpeg(input_path, output_path):
         with wand_image(filename=input_path) as img:
             img.format = 'jpeg'
             img.save(filename=output_path)
-            #print(f"Image saved successfully: {output_path}") # por isso daqui em um arquivo de log depois
 
-            log_path: str = './scan_log.txt'
-            with open(log_path, 'a') as log_file:
-                user = output_path.split('\\')[-2]
-                log_file.write(f'[saved_user] \'{user}\' - {datetime.datetime.now()}\n')
-                log_file.close()
+            return True
 
     except WandException as e:
-        print(f"Failed to process image: {e}") # isso tb
+        return False
 
 
 def main() -> None:
