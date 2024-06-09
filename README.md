@@ -1,3 +1,3 @@
-# Face Atendence Aplication
+# Face Attendance Aplication
 
-Simple face atendence aplication, build to detect and classifies peoples face. 
+Simple face attendance aplication, build to detect and classifies peoples face. 
