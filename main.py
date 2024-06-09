@@ -80,6 +80,9 @@ class App:
             self.cap: cv2.VideoCapture = cv2.VideoCapture(0)
             self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('J', 'P', 'E', 'G'))
 
+        self.frame_rate = self.cap.get(cv2.CAP_PROP_FPS)
+        self.ms_until_next_frame = int((1 / self.frame_rate) * 1000)
+
         self._label: tk.Label = label
         self.processWebcan()
 
@@ -100,11 +103,10 @@ class App:
         self._label.configure(image=img_tk)
 
         # Update the image to appear like a video
-        self.frame_rate = self.cap.get(cv2.CAP_PROP_FPS)
-        self._label.after(int((1/self.frame_rate)*1000), self.processWebcan)
+        self._label.after(self.ms_until_next_frame, self.processWebcan)
 
-    def rotateImgClockWise(self):
-        pass
+        # update output text
+        self.label_text_scan_ouput.configure(text=self.output_msg)
 
 
     def incrementAngleClockWise(self):
@@ -144,25 +146,30 @@ class App:
             usr_name: str = img_utils.recognize(self.most_recent_cap, self.imgs_db_dir)
 
             if usr_name in ['person_not_registered', 'no_person_found']:
-                ui_utils.msgBox("Blocked", "Unknow user. Register or try again.")
+                #ui_utils.msgBox("Blocked", "Unknow user. Register or try again.")
                 unkown_msg: str = f'[unkown] unknown person atempt - {datetime.datetime.now()} - real_face_score: \
                                         {result_spoofing_test["conf"]:.2f}\n'
                 log_utils.scan_log(unkown_msg)
 
+                self.output_msg: str = "Blocked: unknown/not registered user."
+
             else:
-                ui_utils.msgBox("Passed", "User {} identified.".format(usr_name))
+                #ui_utils.msgBox("Passed", "User {} identified.".format(usr_name))
 
                 match_msg: str = f'[match] user \'{usr_name}\' - {datetime.datetime.now()} - real_face_score: \
                         {result_spoofing_test["conf"]:.2f}\n'
                 log_utils.scan_log(match_msg)
 
+                self.output_msg: str = f'Passed: match user \'{usr_name}\'.'
+
         elif result_spoofing_test['conf'] >= 0.70:
-            ui_utils.msgBox("Blocked", "Spoof atempt detected")
-            print('spoof result: ', result_spoofing_test['label'])
+            #ui_utils.msgBox("Blocked", "Spoof atempt detected")
 
             spoof_msg: str = f'[spoof_atempt_detected] - {datetime.datetime.now()} - fake_face_score: \
                         {result_spoofing_test["conf"]:.2f}\n'
             log_utils.scan_log(spoof_msg)
+
+            self.output_msg: str = f'Blocked: spoof atempt  detected with {result_spoofing_test["conf"]:.2f} confidence.'
 
 
     def registerNewUsr(self) -> None:
@@ -213,7 +220,7 @@ class App:
             log_utils.register_log(register_msg)
 
         self.window_register_new_usr.destroy()
-        ui_utils.msgBox('Success.', 'User was registered successfully.')
+        ui_utils.msgBox('Success.', f'User \'{name}\' was registered successfully.')
 
 
     def start(self) -> None:
